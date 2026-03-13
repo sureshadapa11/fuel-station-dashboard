@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fuel Station Dashboard</title>
+
+<style>
+body{
+    font-family: Arial;
+    background:#EEF1F5;
+    margin:0;
+}
+.header{
+    background:#1F4FA3;
+    color:white;
+    text-align:center;
+    padding:20px;
+    font-size:26px;
+    font-weight:bold;
+}
+.container{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    padding:20px;
+}
+.card{
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.15);
+}
+.pump-title{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+.nozzle-block{
+    margin-bottom:15px;
+    padding:10px;
+    background:#F7F9FC;
+    border-radius:8px;
+}
+.nozzle-label{
+    font-weight:bold;
+    margin-bottom:5px;
+}
+select,input{
+    width:100%;
+    padding:8px;
+    margin-top:5px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+.comment{
+    display:none;
+}
+.status-working{ color:green; font-weight:bold; }
+.status-notworking{ color:red; font-weight:bold; }
+.status-maintenance{ color:#c99700; font-weight:bold; }
+
+.save-btn{
+    background:#1F4FA3;
+    color:white;
+    padding:15px;
+    font-size:18px;
+    border:none;
+    border-radius:10px;
+    width:250px;
+    display:block;
+    margin:20px auto;
+    cursor:pointer;
+}
+
+.summary-btn{
+    background:#444;
+    color:white;
+    padding:10px;
+    font-size:16px;
+    border:none;
+    border-radius:8px;
+    width:200px;
+    display:block;
+    margin:10px auto;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Fuel Station Dashboard</div>
+
+<button class="summary-btn" onclick="showSummary()">View Maintenance Summary</button>
+
+<div class="container" id="pumpContainer"></div>
+
+<button class="save-btn" onclick="saveData()">SAVE STATUS</button>
+
+<script>
+const fuels = ["Unleaded", "Extra Unleaded", "Diesel"];
+let pumpData = [];
+
+// Load saved data if available
+if (localStorage.getItem("fuelStationData")) {
+    pumpData = JSON.parse(localStorage.getItem("fuelStationData"));
+}
+
+function createPumpCards() {
+    const container = document.getElementById("pumpContainer");
+    container.innerHTML = "";
+
+    for (let p = 1; p <= 8; p++) {
+        let card = document.createElement("div");
+        card.className = "card";
+
+        let title = document.createElement("div");
+        title.className = "pump-title";
+        title.innerText = `Pump ${p}`;
+        card.appendChild(title);
+
+        for (let n = 1; n <= 3; n++) {
+            let block = document.createElement("div");
+            block.className = "nozzle-block";
+
+            let saved = pumpData[p-1]?.nozzles[n-1] || { status:"Working", comment:"" };
+
+            block.innerHTML = `
+                <div class="nozzle-label">Nozzle ${n} (${fuels[n-1]})</div>
+                <select onchange="toggleComment(this)">
+                    <option ${saved.status==="Working"?"selected":""}>Working</option>
+                    <option ${saved.status==="Not Working"?"selected":""}>Not Working</option>
+                    <option ${saved.status==="Maintenance"?"selected":""}>Maintenance</option>
+                </select>
+                <input class="comment" placeholder="Reason if not working" value="${saved.comment}">
+            `;
+
+            if (saved.status !== "Working") {
+                block.querySelector(".comment").style.display = "block";
+            }
+
+            card.appendChild(block);
+        }
+
+        container.appendChild(card);
+    }
+}
+
+function toggleComment(selectElement) {
+    const commentBox = selectElement.nextElementSibling;
+    if (selectElement.value === "Working") {
+        commentBox.style.display = "none";
+        commentBox.value = "";
+    } else {
+        commentBox.style.display = "block";
+    }
+}
+
+function saveData() {
+    const cards = document.querySelectorAll(".card");
+    pumpData = [];
+
+    cards.forEach((card, index) => {
+        const nozzles = [];
+        const blocks = card.querySelectorAll(".nozzle-block");
+
+        blocks.forEach((block, nIndex) => {
+            const status = block.querySelector("select").value;
+            const comment = block.querySelector("input").value;
+
+            nozzles.push({
+                nozzle: nIndex + 1,
+                fuel: fuels[nIndex],
+                status: status,
+                comment: comment
+            });
+        });
+
+        pumpData.push({ pump: index + 1, nozzles });
+    });
+
+    localStorage.setItem("fuelStationData", JSON.stringify(pumpData));
+    alert("Status saved successfully!");
+}
+
+function showSummary() {
+    let issues = [];
+
+    pumpData.forEach(p => {
+        p.nozzles.forEach(n => {
+            if (n.status !== "Working") {
+                issues.push(`Pump ${p.pump} – Nozzle ${n.nozzle} (${n.fuel}) → ${n.status} (${n.comment})`);
+            }
+        });
+    });
+
+    if (issues.length === 0) {
+        alert("All pumps and nozzles are working normally.");
+    } else {
+        alert("Maintenance Summary:\n\n" + issues.join("\n"));
+    }
+}
+
+createPumpCards();
+</script>
+
+</body>
+</html>
