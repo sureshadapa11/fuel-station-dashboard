@@ -94,277 +94,62 @@ cursor:pointer;
 
 <body>
 
-<div class="header">
-Fuel Station Dashboard
-</div>
+<div class="header">Fuel Station Dashboard</div>
 
-<div class="container">
-
-<div class="card" data-nozzles="Unleaded,Extra Unleaded,Diesel">
-<div class="pump-title">Pump 1</div>
-<div id="pump1-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Unleaded,Diesel">
-<div class="pump-title">Pump 2</div>
-<div id="pump2-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Diesel,Diesel">
-<div class="pump-title">Pump 3</div>
-<div id="pump3-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Diesel,Diesel">
-<div class="pump-title">Pump 4</div>
-<div id="pump4-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Unleaded,Diesel">
-<div class="pump-title">Pump 5</div>
-<div id="pump5-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Unleaded,Diesel">
-<div class="pump-title">Pump 6</div>
-<div id="pump6-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Diesel,Diesel">
-<div class="pump-title">Pump 7</div>
-<div id="pump7-nozzles"></div>
-</div>
-
-<div class="card" data-nozzles="Unleaded,Extra Diesel,Diesel">
-<div class="pump-title">Pump 8</div>
-<div id="pump8-nozzles"></div>
-</div>
-
-</div>
+<div class="container" id="dashboard"></div>
 
 <button class="save-btn" onclick="saveData()">SAVE STATUS</button>
 
-<!--
-  To use this with Firebase, replace the config below with your project's values.
-  You can find them in Firebase console > Project settings > Your apps > SDK setup.
--->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyB1KE8JY3ezd1E24nMHfi4vY__fcGHa7A0",
-  authDomain: "fuel-station-dashboard-2ab64.firebaseapp.com",
-  databaseURL: "https://fuel-station-dashboard-2ab64-default-rtdb.firebaseio.com",
-  projectId: "fuel-station-dashboard-2ab64",
-  storageBucket: "fuel-station-dashboard-2ab64.firebasestorage.app",
-  messagingSenderId: "61242548558",
-  appId: "1:61242548558:web:99f27e640ee5690a95be1f",
-  measurementId: "G-WFYTNFNLRM"
-};cd "C:\Users\adapa\Desktop"
-git clone https://github.com/sureshadapa11/fuel-station-dashboard.git
-cd fuel-station-dashboard
+const pumps = [
+  { name: 'Pump 1', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
+  { name: 'Pump 2', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
+  { name: 'Pump 3', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] },
+  { name: 'Pump 4', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] },
+  { name: 'Pump 5', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
+  { name: 'Pump 6', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
+  { name: 'Pump 7', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] },
+  { name: 'Pump 8', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] }
+];
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-const DASHBOARD_DOC = db.collection('dashboard').doc('pumps');
-const LOCKS_DOC = db.collection('dashboard').doc('locks');
-
-const LOCAL_USER_KEY = 'fuelDashboardUserId';
-function getUserId() {
-  let id = localStorage.getItem(LOCAL_USER_KEY);
-  if (!id) {
-    id = `u_${Math.random().toString(16).slice(2)}_${Date.now()}`;
-    localStorage.setItem(LOCAL_USER_KEY, id);
-  }
-  return id;
-}
-const userId = getUserId();
-let localEditingPump = null;
-
-function getPumpCards() {
-  return Array.from(document.querySelectorAll('.card'));
-}
-
-function getPumpName(card) {
-  return card.querySelector('.pump-title')?.textContent?.trim();
-}
-
-function findCardForPump(pump) {
-  return getPumpCards().find((card) => getPumpName(card) === pump);
-}
-
-function createNozzleUI(card) {
-  const pump = getPumpName(card);
-  const nozzlesStr = card.getAttribute('data-nozzles');
-  if (!nozzlesStr) return;
-  const nozzles = nozzlesStr.split(',');
-  const container = card.querySelector(`#${pump.toLowerCase().replace(' ', '')}-nozzles`);
-  if (!container) return;
-
-  nozzles.forEach(nozzle => {
-    const item = document.createElement('div');
-    item.className = 'nozzle-item working';
-    item.setAttribute('data-nozzle', nozzle.trim());
-
-    const name = document.createElement('div');
-    name.className = 'nozzle-name';
-    name.textContent = nozzle.trim();
-
-    const select = document.createElement('select');
-    select.innerHTML = `
-      <option value="Working">Working</option>
-      <option value="Not Working">Not Working</option>
-      <option value="Maintenance">Maintenance</option>
-    `;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Reason if not working or maintenance';
-    input.style.display = 'none';
-
-    const setEditing = () => {
-      if (localEditingPump !== pump) {
-        localEditingPump = pump;
-        LOCKS_DOC.set({ [pump]: { userId, ts: Date.now() } }, { merge: true });
-      }
-    };
-
-    const clearEditing = () => {
-      if (localEditingPump === pump) {
-        localEditingPump = null;
-        LOCKS_DOC.set({ [pump]: null }, { merge: true });
-      }
-    };
-
-    select.addEventListener('focus', setEditing);
-    input.addEventListener('focus', setEditing);
-    select.addEventListener('blur', () => setTimeout(clearEditing, 200));
-    input.addEventListener('blur', () => setTimeout(clearEditing, 200));
-
-    select.addEventListener('change', () => {
-      updateNozzleColor(item, select.value);
-      if (select.value === 'Working') {
-        input.style.display = 'none';
-        input.value = '';
-      } else {
-        input.style.display = 'block';
-      }
-      updateFirebase(pump, nozzle.trim(), select.value, input.value);
+function render() {
+  const dashboard = document.getElementById('dashboard');
+  dashboard.innerHTML = '';
+  pumps.forEach(pump => {
+    const pumpDiv = document.createElement('div');
+    pumpDiv.className = 'card';
+    pumpDiv.innerHTML = `<div class="pump-title">${pump.name}</div>`;
+    pump.nozzles.forEach(nozzle => {
+      const nozzleDiv = document.createElement('div');
+      nozzleDiv.className = 'nozzle-item';
+      const status = localStorage.getItem(`${pump.name}-${nozzle}`) || 'Working';
+      nozzleDiv.classList.add(status.toLowerCase().replace(' ', '-'));
+      nozzleDiv.innerHTML = `
+        <div class="nozzle-name">${nozzle}</div>
+        <select onchange="statusChanged('${pump.name}', '${nozzle}', this.value)">
+          <option value="Working" ${status === 'Working' ? 'selected' : ''}>Working</option>
+          <option value="Not Working" ${status === 'Not Working' ? 'selected' : ''}>Not Working</option>
+          <option value="Maintenance" ${status === 'Maintenance' ? 'selected' : ''}>Maintenance</option>
+        </select>
+        <input type="text" placeholder="Reason if not working or maintenance" value="${localStorage.getItem(`${pump.name}-${nozzle}-reason`) || ''}" onchange="saveReason('${pump.name}', '${nozzle}', this.value)" style="display: ${status === 'Working' ? 'none' : 'block'};">
+      `;
+      pumpDiv.appendChild(nozzleDiv);
     });
-
-    input.addEventListener('input', () => {
-      updateFirebase(pump, nozzle.trim(), select.value, input.value);
-    });
-
-    item.appendChild(name);
-    item.appendChild(select);
-    item.appendChild(input);
-    container.appendChild(item);
+    dashboard.appendChild(pumpDiv);
   });
 }
 
-function updateNozzleColor(item, state) {
-  item.classList.remove('working', 'not-working', 'maintenance');
-  if (state === 'Working') item.classList.add('working');
-  else if (state === 'Not Working') item.classList.add('not-working');
-  else if (state === 'Maintenance') item.classList.add('maintenance');
+function statusChanged(pump, nozzle, status) {
+  localStorage.setItem(`${pump}-${nozzle}`, status);
+  render();
 }
 
-function updateFirebase(pump, nozzle, state, reason) {
-  DASHBOARD_DOC.set({
-    status: {
-      [pump]: {
-        nozzles: {
-          [nozzle]: { state, reason }
-        }
-      }
-    }
-  }, { merge: true });
+function saveReason(pump, nozzle, reason) {
+  localStorage.setItem(`${pump}-${nozzle}-reason`, reason);
 }
 
-function applyStatusToUI(status, skipPump) {
-  for (const [pump, pumpData] of Object.entries(status || {})) {
-    if (skipPump && pump === skipPump) continue;
-    const card = findCardForPump(pump);
-    if (!card || !pumpData?.nozzles) continue;
-
-    for (const [nozzle, nozzleData] of Object.entries(pumpData.nozzles)) {
-      const item = card.querySelector(`[data-nozzle="${nozzle}"]`);
-      if (!item) continue;
-
-      const select = item.querySelector('select');
-      const input = item.querySelector('input');
-      if (!select || !input) continue;
-
-      select.value = nozzleData.state || 'Working';
-      input.value = nozzleData.reason || '';
-      updateNozzleColor(item, select.value);
-      input.style.display = (select.value === 'Working') ? 'none' : 'block';
-    }
-  }
-}
-
-function validateStatus(status) {
-  for (const [pump, pumpData] of Object.entries(status || {})) {
-    for (const [nozzle, nozzleData] of Object.entries(pumpData?.nozzles || {})) {
-      if ((nozzleData.state === 'Not Working' || nozzleData.state === 'Maintenance') && !nozzleData.reason) {
-        return `Please enter a reason for ${pump} - ${nozzle} being ${nozzleData.state.toLowerCase()}.`;
-      }
-    }
-  }
-  return null;
-}
-
-function buildStatusFromUI() {
-  const status = {};
-  for (const card of getPumpCards()) {
-    const pump = getPumpName(card);
-    const nozzles = {};
-    const items = card.querySelectorAll('.nozzle-item');
-    items.forEach(item => {
-      const nozzle = item.getAttribute('data-nozzle');
-      const select = item.querySelector('select');
-      const input = item.querySelector('input');
-      if (nozzle && select && input) {
-        nozzles[nozzle] = {
-          state: select.value,
-          reason: input.value.trim(),
-        };
-      }
-    });
-    if (Object.keys(nozzles).length) {
-      status[pump] = { nozzles };
-    }
-  }
-  return status;
-}
-
-async function saveData() {
-  const status = buildStatusFromUI();
-  const validationError = validateStatus(status);
-  if (validationError) {
-    showMessage(validationError, 'error');
-    return;
-  }
-
-  try {
-    await DASHBOARD_DOC.set({ status }, { merge: true });
-    showMessage('Status saved and shared with everyone ✅');
-  } catch (err) {
-    console.error(err);
-    showMessage('Failed to save status (check console).', 'error');
-  }
-}
-
-function bindPumpEvents() {
-  // Nozzle events are bound in createNozzleUI
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  getPumpCards().forEach(createNozzleUI);
-  bindPumpEvents();
-});
+render();
+setInterval(render, 5000);
 </script>
 
 </body>
