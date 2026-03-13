@@ -97,13 +97,51 @@ select,input{
 
 <button class="save-btn" onclick="saveData()">SAVE STATUS</button>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// Firebase config (replace with your own)
+const firebaseConfig = {
+  apiKey: "your-api-key",
+  authDomain: "your-project.firebaseapp.com",
+  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+  projectId: "your-project",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "your-app-id"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
 const fuels = ["Unleaded", "Extra Unleaded", "Diesel"];
 let pumpData = [];
+let isEditing = false;
 
-// Load saved data if available
-if (localStorage.getItem("fuelStationData")) {
-    pumpData = JSON.parse(localStorage.getItem("fuelStationData"));
+// Load data from Firebase
+async function loadData() {
+    if (isEditing) return; // Skip refresh if user is editing
+    try {
+        const snapshot = await get(ref(database, 'pumpData'));
+        if (snapshot.exists()) {
+            pumpData = snapshot.val();
+            createPumpCards();
+        }
+    } catch (error) {
+        console.error("Error loading data:", error);
+    }
+}
+
+// Save data to Firebase
+async function saveDataToFirebase() {
+    try {
+        await set(ref(database, 'pumpData'), pumpData);
+        alert("Status saved successfully!");
+    } catch (error) {
+        console.error("Error saving data:", error);
+        alert("Error saving data. Please try again.");
+    }
 }
 
 function createPumpCards() {
@@ -179,8 +217,7 @@ function saveData() {
         pumpData.push({ pump: index + 1, nozzles });
     });
 
-    localStorage.setItem("fuelStationData", JSON.stringify(pumpData));
-    alert("Status saved successfully!");
+    saveDataToFirebase();
 }
 
 function showSummary() {
@@ -201,8 +238,26 @@ function showSummary() {
     }
 }
 
-createPumpCards();
+// Check if user is editing
+document.addEventListener('focusin', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+        isEditing = true;
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+        isEditing = false;
+    }
+});
+
+// Auto-refresh every 5 seconds
+setInterval(loadData, 5000);
+
+// Initial load
+loadData();
 </script>
 
 </body>
 </html>
+
