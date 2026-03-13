@@ -5,260 +5,180 @@
 <title>Fuel Station Dashboard</title>
 
 <style>
+
 body{
-    font-family: Arial;
-    background:#EEF1F5;
-    margin:0;
+font-family: Arial;
+background:#EEF1F5;
+margin:0;
 }
+
 .header{
-    background:#1F4FA3;
-    color:white;
-    text-align:center;
-    padding:20px;
-    font-size:26px;
-    font-weight:bold;
+background:#1F4FA3;
+color:white;
+text-align:center;
+padding:20px;
+font-size:26px;
+font-weight:bold;
 }
+
 .container{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:18px;
-    padding:20px;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:18px;
+padding:20px;
 }
+
 .card{
-    background:white;
-    padding:15px;
-    border-radius:10px;
-    box-shadow:0 3px 8px rgba(0,0,0,0.15);
+background:white;
+padding:15px;
+border-radius:10px;
+box-shadow:0 3px 8px rgba(0,0,0,0.15);
 }
+
 .pump-title{
-    font-size:18px;
-    font-weight:bold;
-    margin-bottom:10px;
+font-size:18px;
+font-weight:bold;
+margin-bottom:5px;
 }
-.nozzle-block{
-    margin-bottom:15px;
-    padding:10px;
-    background:#F7F9FC;
-    border-radius:8px;
+
+.nozzle{
+color:#666;
+margin-bottom:10px;
 }
-.nozzle-label{
-    font-weight:bold;
-    margin-bottom:5px;
-}
+
 select,input{
-    width:100%;
-    padding:8px;
-    margin-top:5px;
-    border-radius:6px;
-    border:1px solid #ccc;
+width:100%;
+padding:8px;
+margin-top:5px;
+border-radius:6px;
+border:1px solid #ccc;
 }
-.comment{
-    display:none;
-}
-.status-working{ color:green; font-weight:bold; }
-.status-notworking{ color:red; font-weight:bold; }
-.status-maintenance{ color:#c99700; font-weight:bold; }
 
 .save-btn{
-    background:#1F4FA3;
-    color:white;
-    padding:15px;
-    font-size:18px;
-    border:none;
-    border-radius:10px;
-    width:250px;
-    display:block;
-    margin:20px auto;
-    cursor:pointer;
+background:#1F4FA3;
+color:white;
+padding:15px;
+font-size:18px;
+border:none;
+border-radius:10px;
+width:250px;
+display:block;
+margin:20px auto;
+cursor:pointer;
 }
 
-.summary-btn{
-    background:#444;
-    color:white;
-    padding:10px;
-    font-size:16px;
-    border:none;
-    border-radius:8px;
-    width:200px;
-    display:block;
-    margin:10px auto;
-    cursor:pointer;
-}
 </style>
 </head>
 
 <body>
 
-<div class="header">Fuel Station Dashboard</div>
+<div class="header">
+Fuel Station Dashboard
+</div>
 
-<button class="summary-btn" onclick="showSummary()">View Maintenance Summary</button>
+<div class="container">
 
-<div class="container" id="pumpContainer"></div>
+<div class="card">
+<div class="pump-title">Pump 1</div>
+<div class="nozzle">Unleaded | Extra Unleaded | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 2</div>
+<div class="nozzle">Unleaded | Extra Unleaded | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 3</div>
+<div class="nozzle">Unleaded | Extra Diesel | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 4</div>
+<div class="nozzle">Unleaded | Extra Diesel | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 5</div>
+<div class="nozzle">Unleaded | Extra Unleaded | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 6</div>
+<div class="nozzle">Unleaded | Extra Unleaded | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 7</div>
+<div class="nozzle">Unleaded | Extra Diesel | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+<div class="card">
+<div class="pump-title">Pump 8</div>
+<div class="nozzle">Unleaded | Extra Diesel | Diesel</div>
+<select>
+<option>Working</option>
+<option>Not Working</option>
+<option>Maintenance</option>
+</select>
+<input placeholder="Reason if not working">
+</div>
+
+</div>
 
 <button class="save-btn" onclick="saveData()">SAVE STATUS</button>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+<script>
 
-// Firebase config (replace with your own)
-const firebaseConfig = {
-  apiKey: "AIzaSyB1KE8JY3ezd1E24nMHfi4vY__fcGHa7A0",
-  authDomain: "fuel-station-dashboard-2ab64.firebaseapp.com",
-  databaseURL: "https://fuel-station-dashboard-2ab64-default-rtdb.firebaseio.com",
-  projectId: "fuel-station-dashboard-2ab64",
-  storageBucket: "fuel-station-dashboard-2ab64.firebasestorage.app",
-  messagingSenderId: "61242548558",
-  appId: "1:61242548558:web:99f27e640ee5690a95be1f",
-  measurementId: "G-WFYTNFNLRM"
-};
+function saveData(){
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+alert("Status saved successfully!");
 
-const fuels = ["Unleaded", "Extra Unleaded", "Diesel"];
-let pumpData = [];
-let isEditing = false;
-
-// Load data from Firebase
-async function loadData() {
-    if (isEditing) return; // Skip refresh if user is editing
-    try {
-        const snapshot = await get(ref(database, 'pumpData'));
-        if (snapshot.exists()) {
-            pumpData = snapshot.val();
-            createPumpCards();
-        }
-    } catch (error) {
-        console.error("Error loading data:", error);
-    }
 }
 
-// Save data to Firebase
-async function saveDataToFirebase() {
-    try {
-        await set(ref(database, 'pumpData'), pumpData);
-        alert("Status saved successfully!");
-    } catch (error) {
-        console.error("Error saving data:", error);
-        alert("Error saving data. Please try again.");
-    }
-}
-
-function createPumpCards() {
-    const container = document.getElementById("pumpContainer");
-    container.innerHTML = "";
-
-    for (let p = 1; p <= 8; p++) {
-        let card = document.createElement("div");
-        card.className = "card";
-
-        let title = document.createElement("div");
-        title.className = "pump-title";
-        title.innerText = `Pump ${p}`;
-        card.appendChild(title);
-
-        for (let n = 1; n <= 3; n++) {
-            let block = document.createElement("div");
-            block.className = "nozzle-block";
-
-            let saved = pumpData[p-1]?.nozzles[n-1] || { status:"Working", comment:"" };
-
-            block.innerHTML = `
-                <div class="nozzle-label">Nozzle ${n} (${fuels[n-1]})</div>
-                <select onchange="toggleComment(this)">
-                    <option ${saved.status==="Working"?"selected":""}>Working</option>
-                    <option ${saved.status==="Not Working"?"selected":""}>Not Working</option>
-                    <option ${saved.status==="Maintenance"?"selected":""}>Maintenance</option>
-                </select>
-                <input class="comment" placeholder="Reason if not working" value="${saved.comment}">
-            `;
-
-            if (saved.status !== "Working") {
-                block.querySelector(".comment").style.display = "block";
-            }
-
-            card.appendChild(block);
-        }
-
-        container.appendChild(card);
-    }
-}
-
-function toggleComment(selectElement) {
-    const commentBox = selectElement.nextElementSibling;
-    if (selectElement.value === "Working") {
-        commentBox.style.display = "none";
-        commentBox.value = "";
-    } else {
-        commentBox.style.display = "block";
-    }
-}
-
-function saveData() {
-    const cards = document.querySelectorAll(".card");
-    pumpData = [];
-
-    cards.forEach((card, index) => {
-        const nozzles = [];
-        const blocks = card.querySelectorAll(".nozzle-block");
-
-        blocks.forEach((block, nIndex) => {
-            const status = block.querySelector("select").value;
-            const comment = block.querySelector("input").value;
-
-            nozzles.push({
-                nozzle: nIndex + 1,
-                fuel: fuels[nIndex],
-                status: status,
-                comment: comment
-            });
-        });
-
-        pumpData.push({ pump: index + 1, nozzles });
-    });
-
-    saveDataToFirebase();
-}
-
-function showSummary() {
-    let issues = [];
-
-    pumpData.forEach(p => {
-        p.nozzles.forEach(n => {
-            if (n.status !== "Working") {
-                issues.push(`Pump ${p.pump} – Nozzle ${n.nozzle} (${n.fuel}) → ${n.status} (${n.comment})`);
-            }
-        });
-    });
-
-    if (issues.length === 0) {
-        alert("All pumps and nozzles are working normally.");
-    } else {
-        alert("Maintenance Summary:\n\n" + issues.join("\n"));
-    }
-}
-
-// Check if user is editing
-document.addEventListener('focusin', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-        isEditing = true;
-    }
-});
-
-document.addEventListener('focusout', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-        isEditing = false;
-    }
-});
-
-// Auto-refresh every 5 seconds
-setInterval(loadData, 5000);
-
-// Initial load
-loadData();
 </script>
 
 </body>
 </html>
-
