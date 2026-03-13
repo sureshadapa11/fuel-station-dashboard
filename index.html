@@ -7,7 +7,7 @@
 <style>
 
 body{
-font-family: Arial;
+font-family:Arial;
 background:#EEF1F5;
 margin:0;
 }
@@ -41,39 +41,33 @@ font-weight:bold;
 margin-bottom:10px;
 }
 
-.nozzle-item{
-margin-bottom:15px;
-padding:10px;
-border-radius:8px;
-border-left:5px solid #ccc;
-}
-
-.nozzle-item.working{
-background:#d4edda;
-border-left-color:#28a745;
-}
-
-.nozzle-item.not-working{
-background:#fff3cd;
-border-left-color:#ffc107;
-}
-
-.nozzle-item.maintenance{
-background:#f8d7da;
-border-left-color:#dc3545;
-}
-
-.nozzle-name{
-font-weight:bold;
-margin-bottom:5px;
+.nozzle{
+margin-bottom:12px;
 }
 
 select,input{
 width:100%;
-padding:6px;
-margin-top:3px;
-border-radius:4px;
+padding:8px;
+border-radius:6px;
 border:1px solid #ccc;
+margin-top:4px;
+}
+
+.status{
+margin-top:5px;
+padding:6px;
+color:white;
+border-radius:6px;
+text-align:center;
+font-size:14px;
+}
+
+.green{background:#2ecc71;}
+.orange{background:#f39c12;}
+.red{background:#e74c3c;}
+
+.reason-box{
+display:none;
 }
 
 .save-btn{
@@ -83,13 +77,14 @@ padding:15px;
 font-size:18px;
 border:none;
 border-radius:10px;
-width:250px;
+width:260px;
 display:block;
 margin:20px auto;
 cursor:pointer;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -101,55 +96,108 @@ cursor:pointer;
 <button class="save-btn" onclick="saveData()">SAVE STATUS</button>
 
 <script>
+
 const pumps = [
-  { name: 'Pump 1', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
-  { name: 'Pump 2', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
-  { name: 'Pump 3', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] },
-  { name: 'Pump 4', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] },
-  { name: 'Pump 5', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
-  { name: 'Pump 6', nozzles: ['Unleaded', 'Extra Unleaded', 'Diesel'] },
-  { name: 'Pump 7', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] },
-  { name: 'Pump 8', nozzles: ['Unleaded', 'Extra Diesel', 'Diesel'] }
-];
 
-function render() {
-  const dashboard = document.getElementById('dashboard');
-  dashboard.innerHTML = '';
-  pumps.forEach(pump => {
-    const pumpDiv = document.createElement('div');
-    pumpDiv.className = 'card';
-    pumpDiv.innerHTML = `<div class="pump-title">${pump.name}</div>`;
-    pump.nozzles.forEach(nozzle => {
-      const nozzleDiv = document.createElement('div');
-      nozzleDiv.className = 'nozzle-item';
-      const status = localStorage.getItem(`${pump.name}-${nozzle}`) || 'Working';
-      nozzleDiv.classList.add(status.toLowerCase().replace(' ', '-'));
-      nozzleDiv.innerHTML = `
-        <div class="nozzle-name">${nozzle}</div>
-        <select onchange="statusChanged('${pump.name}', '${nozzle}', this.value)">
-          <option value="Working" ${status === 'Working' ? 'selected' : ''}>Working</option>
-          <option value="Not Working" ${status === 'Not Working' ? 'selected' : ''}>Not Working</option>
-          <option value="Maintenance" ${status === 'Maintenance' ? 'selected' : ''}>Maintenance</option>
-        </select>
-        <input type="text" placeholder="Reason if not working or maintenance" value="${localStorage.getItem(`${pump.name}-${nozzle}-reason`) || ''}" onchange="saveReason('${pump.name}', '${nozzle}', this.value)" style="display: ${status === 'Working' ? 'none' : 'block'};">
-      `;
-      pumpDiv.appendChild(nozzleDiv);
-    });
-    dashboard.appendChild(pumpDiv);
-  });
+["Pump 1","Unleaded","Extra Unleaded","Diesel"],
+["Pump 2","Unleaded","Extra Unleaded","Diesel"],
+["Pump 3","Unleaded","Extra Diesel","Diesel"],
+["Pump 4","Unleaded","Extra Diesel","Diesel"],
+["Pump 5","Unleaded","Extra Unleaded","Diesel"],
+["Pump 6","Unleaded","Extra Unleaded","Diesel"],
+["Pump 7","Unleaded","Extra Diesel","Diesel"],
+["Pump 8","Unleaded","Extra Diesel","Diesel"]
+
+]
+
+const container=document.getElementById("dashboard")
+
+function render(){
+
+container.innerHTML=""
+
+pumps.forEach((pump,pIndex)=>{
+
+let card=document.createElement("div")
+card.className="card"
+
+let html=`<div class="pump-title">${pump[0]}</div>`
+
+pump.slice(1).forEach((nozzle,nIndex)=>{
+
+let id=pIndex+"-"+nIndex
+
+let savedStatus=localStorage.getItem(id) || "Working"
+let savedReason=localStorage.getItem(id+"reason") || ""
+
+let color="green"
+if(savedStatus=="Not Working") color="orange"
+if(savedStatus=="Maintenance") color="red"
+
+let showReason=(savedStatus!="Working") ? "block" : "none"
+
+html+=`
+
+<div class="nozzle">
+
+<b>${nozzle}</b>
+
+<select onchange="statusChanged('${id}',this.value)">
+<option ${savedStatus=="Working"?"selected":""}>Working</option>
+<option ${savedStatus=="Not Working"?"selected":""}>Not Working</option>
+<option ${savedStatus=="Maintenance"?"selected":""}>Maintenance</option>
+</select>
+
+<input class="reason-box" id="reason-${id}" style="display:${showReason}" placeholder="Reason" value="${savedReason}">
+
+<div class="status ${color}">${savedStatus}</div>
+
+</div>
+
+`
+
+})
+
+card.innerHTML=html
+container.appendChild(card)
+
+})
+
 }
 
-function statusChanged(pump, nozzle, status) {
-  localStorage.setItem(`${pump}-${nozzle}`, status);
-  render();
+function statusChanged(id,value){
+
+localStorage.setItem(id,value)
+
+let reason=document.getElementById("reason-"+id)
+
+if(value=="Working"){
+reason.style.display="none"
+}else{
+reason.style.display="block"
 }
 
-function saveReason(pump, nozzle, reason) {
-  localStorage.setItem(`${pump}-${nozzle}-reason`, reason);
+render()
+
 }
 
-render();
-setInterval(render, 5000);
+function saveData(){
+
+document.querySelectorAll(".reason-box").forEach(input=>{
+
+let id=input.id.replace("reason-","")
+localStorage.setItem(id+"reason",input.value)
+
+})
+
+alert("Changes saved successfully!")
+
+}
+
+render()
+
+setInterval(render,5000)
+
 </script>
 
 </body>
