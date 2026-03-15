@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <title>Capelgate Fuel Station Dashboard</title>
 <style>
-/* Your existing styles here */
-
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #e0eafc, #cfdef3);
@@ -136,15 +134,88 @@
   .save-btn:hover {
     background-color: #2563eb;
   }
+
+  /* New styles for downtime report */
+  #downtimeReport {
+    max-width: 960px;
+    margin: 0 auto 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #ffffffcc;
+    border-radius: 18px;
+    padding: 24px 28px;
+    box-shadow: 0 12px 25px rgb(0 0 0 / 0.08);
+  }
+  #downtimeReport h2 {
+    color: #1e40af;
+    border-bottom: 3px solid #3b82f6;
+    padding-bottom: 8px;
+  }
+  #nozzleDowntimeList table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #nozzleDowntimeList th, #nozzleDowntimeList td {
+    padding: 8px;
+    border-bottom: 1px solid #cbd5e1;
+  }
+  #nozzleDowntimeList th {
+    text-align: left;
+    border-bottom: 2px solid #3b82f6;
+  }
+  #nozzleDowntimeList td:last-child {
+    text-align: right;
+  }
+
+  #worstPump {
+    text-align: center;
+    font-weight: 800;
+    margin: 20px 0 40px;
+    font-size: 22px;
+    color: #d14343;
+    user-select: none;
+  }
+
+  /* Smaller back button */
+  #backBtn {
+    display: block;
+    margin: 0 auto 40px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgb(59 130 246 / 0.3);
+    transition: background-color 0.25s ease;
+    user-select: none;
+  }
+  #backBtn:hover {
+    background-color: #2563eb;
+  }
 </style>
 </head>
 <body>
 
 <div class="header">Fuel Station Dashboard</div>
 
-<div class="container" id="dashboard"></div>
+<div id="dashboardPage">
+  <div class="container" id="dashboard"></div>
+  <button class="save-btn" onclick="saveData()">SAVE STATUS</button>
+  <button class="save-btn" onclick="showDowntimeReport()" style="background:#3b82f6; margin-top:10px;">DOWNTIME REPORT</button>
+</div>
 
-<button class="save-btn" onclick="saveData()">SAVE STATUS</button>
+<div id="reportPage" style="display:none;">
+  <div id="downtimeReport">
+    <h2>Downtime Report for Each Nozzle (Last 7 Days)</h2>
+    <div id="nozzleDowntimeList">Loading nozzle downtime...</div>
+  </div>
+
+  <div id="worstPump">Loading worst pump of the week...</div>
+
+  <button id="backBtn" onclick="showDashboard()">BACK TO DASHBOARD</button>
+</div>
 
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -152,19 +223,19 @@
 
 <script>
 const pumps = [
-["Pump 1","Unleaded","Extra Unleaded","Diesel"],
-["Pump 2","Unleaded","Extra Unleaded","Diesel"],
-["Pump 3","Unleaded","Extra Diesel","Diesel"],
-["Pump 4","Unleaded","Extra Diesel","Diesel"],
-["Pump 5","Unleaded","Extra Unleaded","Diesel"],
-["Pump 6","Unleaded","Extra Unleaded","Diesel"],
-["Pump 7","Unleaded","Extra Diesel","Diesel"],
-["Pump 8","Unleaded","Extra Diesel","Diesel"]
+  ["Pump 1","Unleaded","Extra Unleaded","Diesel"],
+  ["Pump 2","Unleaded","Extra Unleaded","Diesel"],
+  ["Pump 3","Unleaded","Extra Diesel","Diesel"],
+  ["Pump 4","Unleaded","Extra Diesel","Diesel"],
+  ["Pump 5","Unleaded","Extra Unleaded","Diesel"],
+  ["Pump 6","Unleaded","Extra Unleaded","Diesel"],
+  ["Pump 7","Unleaded","Extra Diesel","Diesel"],
+  ["Pump 8","Unleaded","Extra Diesel","Diesel"]
 ]
 
 const container=document.getElementById("dashboard")
 
-// Firebase integration
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyB1KE8JY3ezd1E24nMHfi4vY__fcGHa7A0",
   authDomain: "fuel-station-dashboard-2ab64.firebaseapp.com",
@@ -180,138 +251,270 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Load data from Firebase or set default if none
+// Load data from Firebase or default
 async function getStatusData(id) {
   const snapshot = await db.ref('status/' + id).get();
   if (snapshot.exists()) {
     return snapshot.val();
   }
-  return { status: "Working", reason: "" };
+  return { status: "Working", reason: "", downtimePeriods: [] };
 }
 
 async function render(){
-container.innerHTML=""
+  container.innerHTML="";
 
-for(let pIndex=0; pIndex<pumps.length; pIndex++){
-  let pump = pumps[pIndex];
-  let card=document.createElement("div")
-  card.className="card"
-  
-  let html=`<div class="pump-title">${pump[0]}</div>`
+  for(let pIndex=0; pIndex<pumps.length; pIndex++){
+    let pump = pumps[pIndex];
+    let card=document.createElement("div");
+    card.className="card";
 
-  for(let nIndex=1; nIndex<pump.length; nIndex++){
-    let nozzle = pump[nIndex]
-    let id = pIndex + "-" + (nIndex-1)
+    let html=`<div class="pump-title">${pump[0]}</div>`;
 
-    // Get saved status and reason from Firebase (await is needed)
-    let savedData = await getStatusData(id);
-    let savedStatus = savedData.status || "Working"
-    let savedReason = savedData.reason || ""
+    for(let nIndex=1; nIndex<pump.length; nIndex++){
+      let nozzle = pump[nIndex];
+      let id = pIndex + "-" + (nIndex-1);
 
-    let color="green"
-    if(savedStatus=="Not Working") color="orange"
-    if(savedStatus=="Maintenance") color="red"
+      let savedData = await getStatusData(id);
+      let savedStatus = savedData.status || "Working";
+      let savedReason = savedData.reason || "";
 
-    let showReason=(savedStatus!="Working") ? "block" : "none"
+      let color="green";
+      if(savedStatus=="Not Working") color="orange";
+      if(savedStatus=="Maintenance") color="red";
 
-    html+=`
-    <div class="nozzle">
-    <b>${nozzle}</b>
-    <select onchange="statusChanged('${id}',this.value)">
-      <option ${savedStatus=="Working"?"selected":""}>Working</option>
-      <option ${savedStatus=="Not Working"?"selected":""}>Not Working</option>
-      <option ${savedStatus=="Maintenance"?"selected":""}>Maintenance</option>
-    </select>
-    <input class="reason-box" id="reason-${id}" style="display:${showReason}" placeholder="Reason" value="${savedReason}">
-    <div class="status ${color}">${savedStatus}</div>
-    </div>`
+      let showReason=(savedStatus!="Working") ? "block" : "none";
+
+      html+=`
+      <div class="nozzle">
+      <b>${nozzle}</b>
+      <select onchange="statusChanged('${id}',this.value)">
+        <option ${savedStatus=="Working"?"selected":""}>Working</option>
+        <option ${savedStatus=="Not Working"?"selected":""}>Not Working</option>
+        <option ${savedStatus=="Maintenance"?"selected":""}>Maintenance</option>
+      </select>
+      <input class="reason-box" id="reason-${id}" style="display:${showReason}" placeholder="Reason" value="${savedReason}">
+      <div class="status ${color}">${savedStatus}</div>
+      </div>`;
+    }
+    card.innerHTML=html;
+    container.appendChild(card);
   }
-  card.innerHTML=html
-  container.appendChild(card)
-}
 }
 
-// Called when status dropdown changes
 function statusChanged(id,value){
-  let reason=document.getElementById("reason-"+id)
+  let reason=document.getElementById("reason-"+id);
   if(value=="Working"){
-      reason.style.display="none"
+      reason.style.display="none";
   } else {
-      reason.style.display="block"
+      reason.style.display="block";
   }
-  // Update status color and text dynamically
-  let nozzleDiv = reason.parentElement
-  let statusDiv = nozzleDiv.querySelector(".status")
-  statusDiv.innerText = value
-  let color = "green"
-  if(value === "Not Working") color = "orange"
-  if(value === "Maintenance") color = "red"
-  statusDiv.className = "status "+color
+  let nozzleDiv = reason.parentElement;
+  let statusDiv = nozzleDiv.querySelector(".status");
+  statusDiv.innerText = value;
+  let color = "green";
+  if(value === "Not Working") color = "orange";
+  if(value === "Maintenance") color = "red";
+  statusDiv.className = "status "+color;
 }
 
-// Save status and reasons to Firebase for all nozzles
-function saveData(){
-  pumps.forEach((pump, pIndex)=>{
-    pump.slice(1).forEach((nozzle, nIndex)=>{
-      let id = pIndex + "-" + nIndex
-      let selectElem = document.querySelector(`select[onchange*="${id}"]`)
-      let status = selectElem.value
-      let reasonInput = document.getElementById("reason-"+id)
-      let reason = reasonInput.value
+async function saveData(){
+  for (let pIndex = 0; pIndex < pumps.length; pIndex++) {
+    for (let nIndex = 0; nIndex < pumps[pIndex].length - 1; nIndex++) {
+      let id = pIndex + "-" + nIndex;
+      let selectElem = document.querySelector(`select[onchange*="${id}"]`);
+      let status = selectElem.value;
+      let reasonInput = document.getElementById("reason-" + id);
+      let reason = reasonInput.value;
 
-      db.ref('status/' + id).set({
-        status: status,
-        reason: reason
-      })
-    })
-  })
+      const statusRef = db.ref('status/' + id);
+      const snapshot = await statusRef.get();
+      const currentData = snapshot.exists() ? snapshot.val() : { status: "Working", downtimePeriods: [] };
+      const prevStatus = currentData.status || "Working";
+      let downtimePeriods = currentData.downtimePeriods || [];
 
-  alert("Changes saved successfully!")
+      const now = Date.now();
+
+      if (prevStatus === "Working" && status !== "Working") {
+        downtimePeriods.push({ start: now, end: 0 });
+      }
+      else if (prevStatus !== "Working" && status === "Working") {
+        for (let period of downtimePeriods) {
+          if (period.end === 0) {
+            period.end = now;
+            break;
+          }
+        }
+      }
+
+      await statusRef.set({
+        status,
+        reason,
+        downtimePeriods
+      });
+    }
+  }
+  alert("Changes saved successfully!");
+  calculateWeeklyDowntime();
 }
 
-// Setup realtime listener to update UI on data change live
 function setupRealtimeUpdates(){
   db.ref('status').on('value', (snapshot) => {
     if (!snapshot.exists()) return;
-    const statuses = snapshot.val()
+    const statuses = snapshot.val();
 
     for(const id in statuses){
-      const data = statuses[id]
-      const reasonInput = document.getElementById("reason-" + id)
+      const data = statuses[id];
+      const reasonInput = document.getElementById("reason-" + id);
       if(!reasonInput) continue;
 
-      const nozzleDiv = reasonInput.parentElement
-      const statusDiv = nozzleDiv.querySelector(".status")
-      const select = nozzleDiv.querySelector("select")
+      const nozzleDiv = reasonInput.parentElement;
+      const statusDiv = nozzleDiv.querySelector(".status");
+      const select = nozzleDiv.querySelector("select");
 
-      // Prevent overwriting if user is active on input/select
       if(document.activeElement !== reasonInput){
-        reasonInput.value = data.reason || ""
+        reasonInput.value = data.reason || "";
       }
 
       if(document.activeElement !== select){
-        select.value = data.status || "Working"
+        select.value = data.status || "Working";
       }
 
-      // Update status text/color
-      let color = "green"
-      if(data.status === "Not Working") color = "orange"
-      if(data.status === "Maintenance") color = "red"
+      let color = "green";
+      if(data.status === "Not Working") color = "orange";
+      if(data.status === "Maintenance") color = "red";
 
-      statusDiv.innerText = data.status
-      statusDiv.className = "status "+color
+      statusDiv.innerText = data.status;
+      statusDiv.className = "status "+color;
 
-      // Show/hide reason box
-      reasonInput.style.display = (data.status === "Working") ? "none" : "block"
+      reasonInput.style.display = (data.status === "Working") ? "none" : "block";
     }
-  })
+    calculateWeeklyDowntime();
+  });
 }
 
-// Initial rendering and setup realtime updates
-render().then(() => {
-  setupRealtimeUpdates()
-})
+async function calculateWeeklyDowntime(){
+  const oneWeekAgo = Date.now() - 7*24*3600*1000;
 
+  const snapshot = await db.ref('status').get();
+  if (!snapshot.exists()) {
+    document.getElementById("worstPump").innerText = "No status data available.";
+    document.getElementById("nozzleDowntimeList").innerText = "";
+    return;
+  }
+  const statuses = snapshot.val();
+
+  let pumpDowntime = Array(pumps.length).fill(0);
+
+  for (const id in statuses) {
+    let [pIndex, nIndex] = id.split("-").map(Number);
+    let nozzleData = statuses[id];
+    let downtimePeriods = nozzleData.downtimePeriods || [];
+
+    for (let period of downtimePeriods) {
+      let start = period.start || 0;
+      let end = period.end === 0 ? Date.now() : period.end;
+
+      if (end < oneWeekAgo) continue;
+
+      let periodStart = start < oneWeekAgo ? oneWeekAgo : start;
+      let periodEnd = end;
+
+      if (periodEnd > periodStart) {
+        pumpDowntime[pIndex] += periodEnd - periodStart;
+      }
+    }
+  }
+
+  let worstPumpIndex = pumpDowntime.indexOf(Math.max(...pumpDowntime));
+
+  function msToHours(ms){
+    return (ms / 3600000).toFixed(2);
+  }
+
+  const worstPumpText = `Worst pump of the week: ${pumps[worstPumpIndex][0]} | Total downtime: ${msToHours(pumpDowntime[worstPumpIndex])} hours`;
+  document.getElementById("worstPump").innerText = worstPumpText;
+
+  await calculateNozzleDowntime();
+}
+
+async function calculateNozzleDowntime() {
+  const oneWeekAgo = Date.now() - 7*24*3600*1000;
+  const snapshot = await db.ref('status').get();
+  if (!snapshot.exists()) {
+    document.getElementById("nozzleDowntimeList").innerText = "No status data available.";
+    return;
+  }
+  const statuses = snapshot.val();
+
+  let nozzleReports = [];
+
+  for (const id in statuses) {
+    let [pIndex, nIndex] = id.split("-").map(Number);
+    let nozzleName = pumps[pIndex][nIndex+1];
+    let downtimePeriods = statuses[id].downtimePeriods || [];
+    let totalDowntime = 0;
+
+    for (let period of downtimePeriods) {
+      let start = period.start || 0;
+      let end = period.end === 0 ? Date.now() : period.end;
+
+      if (end < oneWeekAgo) continue;
+
+      let periodStart = start < oneWeekAgo ? oneWeekAgo : start;
+      let periodEnd = end;
+
+      if (periodEnd > periodStart) {
+        totalDowntime += periodEnd - periodStart;
+      }
+    }
+
+    nozzleReports.push({pump: pumps[pIndex][0], nozzle: nozzleName, downtimeMs: totalDowntime});
+  }
+
+  nozzleReports.sort((a,b) => b.downtimeMs - a.downtimeMs);
+
+  let html = `<table>
+                <thead>
+                  <tr><th>Pump</th>
+                      <th>Nozzle</th>
+                      <th>Downtime (hours)</th>
+                  </tr>
+                </thead>
+                <tbody>`;
+
+  function msToHours(ms) {
+    return (ms / 3600000).toFixed(2);
+  }
+  
+  for (const report of nozzleReports) {
+    html += `<tr>
+      <td>${report.pump}</td>
+      <td>${report.nozzle}</td>
+      <td>${msToHours(report.downtimeMs)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+
+  document.getElementById("nozzleDowntimeList").innerHTML = html;
+}
+
+function showDowntimeReport() {
+  document.getElementById('dashboardPage').style.display = 'none';
+  document.getElementById('reportPage').style.display = 'block';
+  calculateWeeklyDowntime();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showDashboard() {
+  document.getElementById('reportPage').style.display = 'none';
+  document.getElementById('dashboardPage').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+render().then(() => {
+  setupRealtimeUpdates();
+  calculateWeeklyDowntime();
+});
 </script>
 
 </body>
